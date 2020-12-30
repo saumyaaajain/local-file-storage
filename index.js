@@ -115,3 +115,5 @@ class JsonToFile{
     }
 
 }
+
+export default JsonToFile;
