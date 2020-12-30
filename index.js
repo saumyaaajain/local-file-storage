@@ -40,11 +40,11 @@ class JsonToFile{
         return this.#append(data);
     }
 
-    get = (id) => {
-        const body = this.#read();
-        if(body.hasOwnProperty(id)) {
+    get = async (id) => {
+        const body = await this.#read().then(r => r).catch(e => e);
+        if (body.hasOwnProperty(id)) {
             return body[id]["value"];
-        } else{
+        } else {
             throw new Error("Record not found!");
         }
     }
@@ -52,7 +52,7 @@ class JsonToFile{
     #append = (message) => {
         var that = this;
         return new Promise((res, rej) => {
-            lockFile.lock(`${this.fileName}.lock`, function (er, isLocked) {
+            lockFile.lock(`${that.fileName}.lock`, function (er, isLocked) {
                 if(isLocked){
                     rej(new Error("Already in use.."));
                     // throw new Error("Already in use..");
@@ -123,8 +123,12 @@ class JsonToFile{
         // return body;
     }
 
-    delete = (id) => {
-        const body = this.#read().then(r => r).catch(e => e);
+    delete = async (id) => {
+        const body = await this.#read()
+            .then(r => r)
+            .catch(e => {
+                throw new Error(e)
+            });
         if(body.hasOwnProperty(id)){
             console.log(body[id]);
             delete body[id];
@@ -140,7 +144,11 @@ class JsonToFile{
     }
 
     #clear = () => {
-        const body = this.#read().then(r => r).catch(e => e);
+        const body = this.#read()
+            .then(r => r)
+            .catch(e => {
+                throw new Error(e)
+            });
         const body_new = {};
         const now = this.#seconds_since_epoch();
         for (let [key, value] of Object.entries(body)) {
@@ -167,8 +175,8 @@ const fn = async () => {
     await data.create("key2", {"id": 1, "name":"abc", "age":20}, 12).then(r => {
         console.log("success", r)
     }).catch(e => console.log("fail", e));
-// data.get("key1");
     await data.get('key1').then(r => console.log("s ",r)).catch(e => console.log("e", e));
+    await data.delete('key1').then(r => console.log("s ",r)).catch(e => console.log("e", e));
 }
 
 fn().then(r => console.log("fin suc", r)).catch(e => console.log("fin err", e));
