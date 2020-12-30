@@ -2,22 +2,26 @@ const fs = require('fs');
 var lockFile = require('lockfile')
 
 class JsonToFile{
-    queue = [];
-
-    constructor(filename = 'read.txt') {
+    constructor(filename = 'data.txt') {
         this.fileName = filename;
-        fs.writeFile(filename, "", function (err) {
-            if (err) throw err;
-            console.log('File is created successfully.');
-        });
-        this.queue = [];
+        this.createFile(filename);
     }
     fileName = 'read.txt';
+
+    createFile = (filename) => {
+        fs.writeFile(filename, "", function (err) {
+            if (err) throw err;
+        });
+    }
 
     getFilesizeInMegaBytes = (filename) => {
         var stats = fs.statSync(filename);
         var fileSizeInBytes = stats.size;
-        return fileSizeInBytes / (1024*1024);
+        return this.convertToMB(fileSizeInBytes);
+    }
+
+    convertToMB = (size) => {
+        return size / (1024*1024);
     }
 
     create = (key, value, timeToLive = -1) => {
@@ -30,10 +34,10 @@ class JsonToFile{
             this.clear();
         }
         const data = `"${key}":{"timeToLive":${this.seconds_since_epoch()+timeToLive},"value":${JSON.stringify(value)}},`;
-        if(fileSize + data.length/(1024*1024) > 1000){
+        if(fileSize + this.convertToMB(data.length) > 1000){
             throw new Error("Out of memory, try deleting some records");
         }
-        this.append(data);
+        return this.append(data);
     }
 
     get = (id) => {
@@ -47,51 +51,85 @@ class JsonToFile{
 
     append = (message) => {
         var that = this;
-        lockFile.lock(`${this.fileName}.lock`, function (er, isLocked) {
-            if(isLocked){
-                throw new Error("Already in use..");
-            }
-            if(er) throw er;
-            fs.appendFile(that.fileName, message, (err) => {
-                if (err) throw err;
-                console.log('Record Added!!');
+        return new Promise((res, rej) => {
+            lockFile.lock(`${this.fileName}.lock`, function (er, isLocked) {
+                if(isLocked){
+                    rej(new Error("Already in use.."));
+                    // throw new Error("Already in use..");
+                }
+                if(er) {
+                    rej(er);
+                    // throw er;
+                }
+                fs.appendFile(that.fileName, message, (err) => {
+                    if (err) {
+                        rej(err);
+                        // throw err;
+                    }
+                    console.log('Record Added!!');
+                });
+                lockFile.unlock(`${that.fileName}.lock`, function (e) {
+                    if(e) {
+                        rej(e);
+                        // throw e;
+                    }
+                    res("Record added successfully");
+                })
             });
-            lockFile.unlock(`${that.fileName}.lock`, function (e) {
-                if(e) throw e;
-            })
         });
     }
 
     write = (message) => {
         var that = this;
-        lockFile.lock(`${this.fileName}.lock`, function (er, isLocked) {
-            if(isLocked){
-                throw new Error("Already in use..");
-            }
-            if(er) throw er;
-            fs.writeFile(that.fileName, message, 'utf8', () => {
-                console.log("written");
-            });
-            lockFile.unlock(`${that.fileName}.lock`, function (e) {
-                if(e) throw e;
+        return new Promise((res, rej) => {
+            lockFile.lock(`${this.fileName}.lock`, function (er, isLocked) {
+                if(isLocked){
+                    // throw new Error("Already in use..");
+                    rej(new Error("Already in use"));
+                }
+                if(er) {
+                    rej(er);
+                    // throw er;
+                }
+                fs.writeFile(that.fileName, message, 'utf8', () => {
+                    console.log("written");
+                });
+                lockFile.unlock(`${that.fileName}.lock`, function (e) {
+                    if(e) {
+                        rej(e);
+                        // throw e;
+                    }
+                    res("Successfully written");
+                });
             });
         });
     }
 
     read = () => {
-        const data = fs.readFileSync(this.fileName, {encoding: 'utf-8'});
-        const dataStr = '{' + data.substring(0, data.length - 1) + '}';
-        const body = JSON.parse(dataStr);
-        return body;
+        var that = this;
+        return new Promise((res, rej) => {
+            fs.readFile(that.fileName, 'utf8', function(err, data){
+                if(err){
+                    rej(err);
+                }
+                const dataStr = '{' + data.substring(0, data.length - 1) + '}';
+                const body = JSON.parse(dataStr);
+                res(body);
+            });
+        });
+        // const data = fs.readFileSync(this.fileName, {encoding: 'utf-8'});
+        // const dataStr = '{' + data.substring(0, data.length - 1) + '}';
+        // const body = JSON.parse(dataStr);
+        // return body;
     }
 
     delete = (id) => {
-        const body = this.read();
+        const body = this.read().then(r => r).catch(e => e);
         if(body.hasOwnProperty(id)){
             console.log(body[id]);
             delete body[id];
             const body_new = JSON.stringify(body);
-            this.write(body_new.substring(1, body_new.length-1));
+            return this.write(body_new.substring(1, body_new.length-1));
         } else{
             throw new Error("Record Not Found!");
         }
@@ -102,7 +140,7 @@ class JsonToFile{
     }
 
     clear = () => {
-        const body = this.read();
+        const body = this.read().then(r => r).catch(e => e);
         const body_new = {};
         const now = this.seconds_since_epoch();
         for (let [key, value] of Object.entries(body)) {
@@ -112,16 +150,25 @@ class JsonToFile{
         }
         const data = JSON.stringify(body_new);
         if(data.length <= 2){
-            this.write("");
+            return this.write("");
         }
-        else this.write(data.substring(1, data.length - 1)+",");
+        else return this.write(data.substring(1, data.length - 1)+",");
     }
 
 }
 
 // export default JsonToFile;
 
-const data = new JsonToFile('data.txt');
-data.create("key1", {"id": 1, "name":"abc", "age":20});
-// data.create("key2", {"id": 1, "name":"abc", "age":20}, 12);
+const fn = async () => {
+    const data = new JsonToFile('data.txt');
+    await data.create("key1", {"id": 1, "name":"abc", "age":20}).then(r => {
+        console.log("success", r)
+    }).catch(e => console.log("fail", e));
+    await data.create("key2", {"id": 1, "name":"abc", "age":20}, 12).then(r => {
+        console.log("success", r)
+    }).catch(e => console.log("fail", e));
 // data.get("key1");
+    await data.get('key1').then(r => console.log("s ",r)).catch(e => console.log("e", e));
+}
+
+fn().then(r => console.log("fin suc", r)).catch(e => console.log("fin err", e));
