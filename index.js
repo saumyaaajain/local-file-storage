@@ -139,8 +139,8 @@ class JsonToFile{
         return Math.floor( Date.now() / 1000 );
     }
 
-    clear = () => {
-        const body = this.#read().then(r => r).catch(e => throw e);
+    #clear = () => {
+        const body = this.#read().then(r => r).catch(e => e);
         const body_new = {};
         const now = this.#seconds_since_epoch();
         for (let [key, value] of Object.entries(body)) {
