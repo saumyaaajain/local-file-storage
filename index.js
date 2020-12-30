@@ -2,12 +2,15 @@ const fs = require('fs');
 var lockFile = require('lockfile')
 
 class JsonToFile{
+    queue = [];
+
     constructor(filename = 'read.txt') {
         this.fileName = filename;
         fs.writeFile(filename, "", function (err) {
             if (err) throw err;
             console.log('File is created successfully.');
         });
+        this.queue = [];
     }
     fileName = 'read.txt';
 
@@ -27,7 +30,7 @@ class JsonToFile{
             this.clear();
         }
         const data = `"${key}":{"timeToLive":${this.seconds_since_epoch()+timeToLive},"value":${JSON.stringify(value)}},`;
-        if(fileSize + data.length > 1000){
+        if(fileSize + data.length/(1024*1024) > 1000){
             throw new Error("Out of memory, try deleting some records");
         }
         this.append(data);
@@ -45,10 +48,10 @@ class JsonToFile{
     append = (message) => {
         var that = this;
         lockFile.lock(`${this.fileName}.lock`, function (er, isLocked) {
-            if(er) throw er;
             if(isLocked){
                 throw new Error("Already in use..");
             }
+            if(er) throw er;
             fs.appendFile(that.fileName, message, (err) => {
                 if (err) throw err;
                 console.log('Record Added!!');
@@ -62,10 +65,10 @@ class JsonToFile{
     write = (message) => {
         var that = this;
         lockFile.lock(`${this.fileName}.lock`, function (er, isLocked) {
-            if(er) throw er;
             if(isLocked){
                 throw new Error("Already in use..");
             }
+            if(er) throw er;
             fs.writeFile(that.fileName, message, 'utf8', () => {
                 console.log("written");
             });
@@ -90,7 +93,7 @@ class JsonToFile{
             const body_new = JSON.stringify(body);
             this.write(body_new.substring(1, body_new.length-1));
         } else{
-            throw new Error("Data Not Found!");
+            throw new Error("Record Not Found!");
         }
     }
 
@@ -103,7 +106,7 @@ class JsonToFile{
         const body_new = {};
         const now = this.seconds_since_epoch();
         for (let [key, value] of Object.entries(body)) {
-            if(value["timeToLive"] >= now){
+            if(value["timeToLive"] >= now || value["timeToLive"] === -1){
                 body_new[key] = value;
             }
         }
@@ -116,4 +119,9 @@ class JsonToFile{
 
 }
 
-export default JsonToFile;
+// export default JsonToFile;
+
+const data = new JsonToFile('data.txt');
+data.create("key1", {"id": 1, "name":"abc", "age":20});
+// data.create("key2", {"id": 1, "name":"abc", "age":20}, 12);
+// data.get("key1");
