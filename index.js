@@ -1,12 +1,12 @@
 const fs = require('fs');
 var lockFile = require('lockfile')
 
-class JsonToFile{
-    constructor(filename = 'data.txt') {
+class LocalFileStorage{
+    constructor(filename = 'localStorage.txt') {
         this.fileName = filename;
         this.#createFile(filename);
     }
-    fileName = 'read.txt';
+    fileName = 'LocalStorage.txt';
 
     #createFile = (filename) => {
         fs.writeFile(filename, "", function (err) {
@@ -33,7 +33,13 @@ class JsonToFile{
         if(fileSize > 600){
             this.#clear();
         }
-        const data = `"${key}":{"timeToLive":${this.#seconds_since_epoch()+timeToLive},"value":${JSON.stringify(value)}},`;
+        let dataToStore = "";
+        try{
+            dataToStore = JSON.stringify(value);
+        } catch (e){
+            throw new Error("Please give valid arguments");
+        }
+        const data = `"${key}":{"timeToLive":${this.#seconds_since_epoch()+timeToLive},"value":${dataToStore}},`;
         if(fileSize + this.#convertToMB(data.length) > 1000){
             throw new Error("Out of memory, try deleting some records");
         }
@@ -55,23 +61,19 @@ class JsonToFile{
             lockFile.lock(`${that.fileName}.lock`, function (er, isLocked) {
                 if(isLocked){
                     rej(new Error("Already in use.."));
-                    // throw new Error("Already in use..");
                 }
                 if(er) {
                     rej(er);
-                    // throw er;
                 }
                 fs.appendFile(that.fileName, message, (err) => {
                     if (err) {
                         rej(err);
-                        // throw err;
                     }
                     console.log('Record Added!!');
                 });
                 lockFile.unlock(`${that.fileName}.lock`, function (e) {
                     if(e) {
                         rej(e);
-                        // throw e;
                     }
                     res("Record added successfully");
                 })
@@ -84,12 +86,10 @@ class JsonToFile{
         return new Promise((res, rej) => {
             lockFile.lock(`${this.fileName}.lock`, function (er, isLocked) {
                 if(isLocked){
-                    // throw new Error("Already in use..");
                     rej(new Error("Already in use"));
                 }
                 if(er) {
                     rej(er);
-                    // throw er;
                 }
                 fs.writeFile(that.fileName, message, 'utf8', () => {
                     console.log("written");
@@ -97,7 +97,6 @@ class JsonToFile{
                 lockFile.unlock(`${that.fileName}.lock`, function (e) {
                     if(e) {
                         rej(e);
-                        // throw e;
                     }
                     res("Successfully written");
                 });
@@ -117,10 +116,6 @@ class JsonToFile{
                 res(body);
             });
         });
-        // const data = fs.readFileSync(this.fileName, {encoding: 'utf-8'});
-        // const dataStr = '{' + data.substring(0, data.length - 1) + '}';
-        // const body = JSON.parse(dataStr);
-        // return body;
     }
 
     delete = async (id) => {
@@ -165,18 +160,4 @@ class JsonToFile{
 
 }
 
-// export default JsonToFile;
-
-const fn = async () => {
-    const data = new JsonToFile('data.txt');
-    await data.create("key1", {"id": 1, "name":"abc", "age":20}).then(r => {
-        console.log("success", r)
-    }).catch(e => console.log("fail", e));
-    await data.create("key2", {"id": 1, "name":"abc", "age":20}, 12).then(r => {
-        console.log("success", r)
-    }).catch(e => console.log("fail", e));
-    await data.get('key1').then(r => console.log("s ",r)).catch(e => console.log("e", e));
-    await data.delete('key1').then(r => console.log("s ",r)).catch(e => console.log("e", e));
-}
-
-fn().then(r => console.log("fin suc", r)).catch(e => console.log("fin err", e));
+module.exports = LocalFileStorage;
