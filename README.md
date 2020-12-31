@@ -6,8 +6,8 @@ This library stores all your data locally in a file. Create, Read and Delete (CR
 
 ## Examples
 `const LocalFileStorage = require('local-file-storage');` <br/>
-`const file = LocalFileStorage();` <br/>
- `const file = LocalFileStorage(['filename']);`
+`const file = new LocalFileStorage();` <br/>
+ `const file = new LocalFileStorage(['filename']);`
  
  If no file name is provided, the data would be stored in "FileStorage.txt".
  
