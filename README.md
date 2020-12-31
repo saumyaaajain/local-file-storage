@@ -1,9 +1,13 @@
-# FileStorage
+# Local File Storage
 This library stores all your data locally in a file. Create, Read and Delete (CRD) operations can be performed with the data stored. Each record has a TimeToLive property which signifies it's' time to live, post which it is no longer available for operations.
 
+## Installation
+`npm i local-file-storage`
+
 ## Examples
-`const file = FileStorage();` <br/>
- `const file = FileStorage(['filename']);`
+`const LocalFileStorage = require('local-file-storage');` <br/>
+`const file = LocalFileStorage();` <br/>
+ `const file = LocalFileStorage(['filename']);`
  
  If no file name is provided, the data would be stored in "FileStorage.txt".
  

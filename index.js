@@ -1,7 +1,7 @@
 const fs = require('fs');
 var lockFile = require('lockfile')
 
-class FileStorage{
+class LocalFileStorage{
     constructor(filename = 'FileStorage.txt') {
         this.fileName = filename;
         this.#createFile(filename);
@@ -160,4 +160,4 @@ class FileStorage{
 
 }
 
-module.exports = FileStorage;
+module.exports = LocalFileStorage;
