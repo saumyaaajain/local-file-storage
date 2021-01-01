@@ -4,6 +4,8 @@ This library stores all your data locally in a file. Create, Read and Delete (CR
 ## Installation
 `npm i local-file-storage`
 
+This package can be viewed at: https://www.npmjs.com/package/local-file-storage
+
 ## Examples
 `const LocalFileStorage = require('local-file-storage');` <br/>
 `const file = new LocalFileStorage();` <br/>
