@@ -10,7 +10,9 @@
     "type": "git",
     "url": "https://github.com/saumyaaajain/json-to-file"
   },
-  "keywords": ["File Storage"],
+  "keywords": [
+    "File Storage"
+  ],
   "author": "Saumya Jain <jsaumya988@gmail.com>",
   "license": "ISC",
   "dependencies": {

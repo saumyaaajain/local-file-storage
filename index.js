@@ -1,5 +1,5 @@
 const fs = require('fs');
-var lockFile = require('lockfile')
+let lockFile = require('lockfile')
 
 class LocalFileStorage{
     constructor(filename = 'FileStorage.txt') {
@@ -15,8 +15,8 @@ class LocalFileStorage{
     }
 
     #getFilesizeInMegaBytes = (filename) => {
-        var stats = fs.statSync(filename);
-        var fileSizeInBytes = stats.size;
+        let stats = fs.statSync(filename);
+        let fileSizeInBytes = stats.size;
         return this.#convertToMB(fileSizeInBytes);
     }
 
@@ -56,7 +56,7 @@ class LocalFileStorage{
     }
 
     #append = (message) => {
-        var that = this;
+        let that = this;
         return new Promise((res, rej) => {
             lockFile.lock(`${that.fileName}.lock`, function (er, isLocked) {
                 if(isLocked){
@@ -82,7 +82,7 @@ class LocalFileStorage{
     }
 
     #write = (message) => {
-        var that = this;
+        let that = this;
         return new Promise((res, rej) => {
             lockFile.lock(`${this.fileName}.lock`, function (er, isLocked) {
                 if(isLocked){
@@ -105,7 +105,7 @@ class LocalFileStorage{
     }
 
     #read = () => {
-        var that = this;
+        let that = this;
         return new Promise((res, rej) => {
             fs.readFile(that.fileName, 'utf8', function(err, data){
                 if(err){
